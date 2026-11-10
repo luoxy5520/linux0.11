@@ -1,19 +1,32 @@
+//没有脱离进程的内核态和用户态
 #define move_to_user_mode() \
+// 模仿中断的硬件压栈
 __asm__ ("movl %%esp,%%eax\n\t" \
+	//0x17 0001 0111 
+	// 10（0 null，1代码段，2数据段） 1（0是GDT，1是LDT） 11(0表示内核态，3表示用户态) 
 	"pushl $0x17\n\t" \ 0x17 is user data segment selector,LDT 中的第三个，第一个是null，第二是代码段，第三是数据段
 	"pushl %%eax\n\t" \ // ss esp eflags cs eip 顺序记住和中断关联，中断自动的进行压栈，中断返回的时候自动pop
 	"pushfl\n\t" \ //flags寄存器压栈
-	"pushl $0x0f\n\t" \3特权，LDT，1是第二个LDT的代码段，是进程0的代码段
-	"pushl $1f\n\t" \
+	"pushl $0x0f\n\t" \3特权，LDT，1是第二个LDT的代码段，是进程0的代码段 3特权用户代码段
+	"pushl $1f\n\t" \//"1:\tmovl $0x17,%%eax\n\t" 
 	"iret\n" \前面是0特权内核 后面都是3特权应用程序了
 	"1:\tmovl $0x17,%%eax\n\t" \
+
 // 进程0的用户栈就是原来的内核栈
 // 进程0的3特权级代码
+
+// 都是进程0的代码段和数据段
+//代码部分	执行时的特权级	属于哪个进程
+//movl %%esp,%%eax 到 iret（含 iret 本身）	0 特权级（内核态）	进程 0
+//iret 跳转到 1f 之后的指令	3 特权级（用户态）	仍是进程 0
 	"movw %%ax,%%ds\n\t" \
 	"movw %%ax,%%es\n\t" \
 	"movw %%ax,%%fs\n\t" \
 	"movw %%ax,%%gs" \
 	:::"ax")
+//前面的 movl $0x17, %eax 先把用户数据段选择子放进 EAX；
+// 这里用 AX 写入 DS、ES、FS、GS。之后进程访问普通数据、字符串或额外数据段时，这些寄存器会提供所用的数据段选择子。
+
 
 #define sti() __asm__ ("sti"::)
 #define cli() __asm__ ("cli"::)
