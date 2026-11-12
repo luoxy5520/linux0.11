@@ -78,20 +78,23 @@ reschedule:
 	jmp _schedule
 .align 2
 _system_call:
-	cmpl $nr_system_calls-1,%eax //检查系统调用的范围
+// eax就是2
+	cmpl $nr_system_calls-1,%eax //检查系统调用的范围，目的是防止用户程序调用不存在的系统调用号，避免访问越界
 	ja bad_sys_call
+	//为后面tss做准备
 	push %ds
 	push %es
 	push %fs
 	pushl %edx
 	pushl %ecx		# push %ebx,%ecx,%edx as parameters
 	pushl %ebx		# to the system call
-	movl $0x10,%edx		# set up ds,es to kernel space
+	movl $0x10,%edx		# set up ds,es to kernel space 
+	# 0x10是内核数据段选择子（特权级0），0x17是用户数据段选择子（特权级3，RPL=3）
 	mov %dx,%ds
 	mov %dx,%es
-	movl $0x17,%edx		# fs points to local data space
+	movl $0x17,%edx		# fs points to local data space 还是进程0的ldt表，why？TODO
 	mov %dx,%fs
-	call _sys_call_table(,%eax,4)
+	call _sys_call_table(,%eax,4) 	# call the system call eip等于 push %eax and then jump to the address of the 
 	pushl %eax
 	movl _current,%eax
 	cmpl $0,state(%eax)		# state

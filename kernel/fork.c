@@ -66,6 +66,7 @@ int copy_mem(int nr,struct task_struct * p)
  * also copies the data segment in it's entirety.
  * 创建子进程的方法就是复制
  */
+// nr is 1,is the subprocess number
 int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 		long ebx,long ecx,long edx,
 		long fs,long es,long ds,
@@ -75,12 +76,12 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 	struct task_struct *p;
 	int i;
 	struct file *f;
-
+	// 虽然page出来了很多内容一个页的大小（包含了task_struct和内核栈），但是经过task_struct之后变为了指向前部分的部分，后面的内核栈的部分不要
 	p = (struct task_struct *) get_free_page();
 	if (!p)
 		return -EAGAIN;
 	task[nr] = p;
-	*p = *current;	/* NOTE! this doesn't copy the supervisor stack */
+	*p = *current;	/* NOTE!  this doesn't copy the supervisor stack */
 	p->state = TASK_UNINTERRUPTIBLE;
 	p->pid = last_pid;
 	p->father = current->pid;
@@ -92,8 +93,9 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 	p->cutime = p->cstime = 0;
 	p->start_time = jiffies;
 	p->tss.back_link = 0;
-	p->tss.esp0 = PAGE_SIZE + (long) p;
-	p->tss.ss0 = 0x10;
+	p->tss.esp0 = PAGE_SIZE + (long) p;//esp0表示是内核态的esp，指向内核栈的最底部
+	//task_stack和内核栈是共用的
+	p->tss.ss0 = 0x10;// ss stack segment 栈段，0是0特权 栈选择子
 	p->tss.eip = eip;
 	p->tss.eflags = eflags;
 	p->tss.eax = 0;

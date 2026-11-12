@@ -396,10 +396,14 @@ void do_no_page(unsigned long error_code,unsigned long address)
 	oom();
 }
 
-// 图2-05,给进程分配内存空间,初始化内存管理数据结构，内存的分配单位是进程
+// 图2-05,给进程分配内存空间,初始化内存管理数据结构，
+//！！！内存的分配单位是进程
+// 记录引用记录，和真实的页之间还要建立关联
 void mem_init(long start_mem, long end_mem)
 {
 	int i;
+	//buffer_head request 都是类似于mem_map这样的记录结构
+	//和页有关的，一个是页目录表，页表(线性地址到物理地址的映射)，另一个就是mem_map （空闲页管理）
 
 	// mem_map数组的每个元素对应一个页框，mem_map[i] = 0表示该页框空闲，mem_map[i] = USED表示该页框已被占用
 	// 并且，为什么mem_map的每一个元素占用unsigned char类型，而不是bit类型呢? 

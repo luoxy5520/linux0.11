@@ -75,6 +75,7 @@ struct tss_struct {
 	struct i387_struct i387;
 };
 
+// is the only signal of one process.
 struct task_struct {
 /* these are hardcoded - don't touch */
 	long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
@@ -179,6 +180,7 @@ struct {long a,b;} __tmp; \
 __asm__("cmpl %%ecx,_current\n\t" \
 	"je 1f\n\t" \
 	"movw %%dx,%1\n\t" \
+// Current有变化的时候也就是进程切换的时候
 	"xchgl %%ecx,_current\n\t" \
 	"ljmp %0\n\t" \
 	"cmpl %%ecx,_last_task_used_math\n\t" \

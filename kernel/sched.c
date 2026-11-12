@@ -58,13 +58,23 @@ union task_union {//图2-20
 
 //全局变量
 //进程0的task_union
+//第一个是进程0，接下来是逗号
 static union task_union init_task = {INIT_TASK,};//定义一个task_union实例,并初始化
 
 long volatile jiffies=0;
 long startup_time=0;
+// 初始就是进程0
 struct task_struct *current = &(init_task.task);
 struct task_struct *last_task_used_math = NULL;
 
+// if you is a process ,
+//then you have a task_struct,
+//and the task_struct is pointed by the task[] array, 
+//and the task[] array is pointed by the current pointer,
+// and the current pointer is pointed by the tss.esp0, 
+//and the tss.esp0 is pointed by the tss_struct, 
+//and the tss_struct is pointed by the task_struct.
+// so you can find your task_struct by current pointer.
 struct task_struct * task[NR_TASKS] = {&(init_task.task), };
 
 // ---从这里
@@ -128,7 +138,7 @@ void schedule(void)
 		}
 
 /* this is the scheduler proper: */
-
+// task[] is also used in the schedule,so the task is not only so the process role but as the scheduler role, and the task[] is the process table, and the process table is used to schedule the process.
 	while (1) {
 		c = -1;
 		next = 0;
