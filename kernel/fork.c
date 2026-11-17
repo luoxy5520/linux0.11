@@ -36,20 +36,24 @@ void verify_area(void * addr,int size)
 	}
 }
 
+//分配线形+物理页面
 int copy_mem(int nr,struct task_struct * p)
 {
 	unsigned long old_data_base,new_data_base,data_limit;
 	unsigned long old_code_base,new_code_base,code_limit;
 
-	code_limit=get_limit(0x0f);
+	code_limit=get_limit(0x0f);//还是当前父进程的，ldtr为进程0
 	data_limit=get_limit(0x17);
+	//每一个进程的数据段和代码段都是0x0f和0x17，再由ldtr来区分不同的进程
 	old_code_base = get_base(current->ldt[1]);
-	old_data_base = get_base(current->ldt[2]);
+	old_data_base = get_base(current->ldt[2]);//数据段和代码段的基址对齐，但是数据段的长度在最顶部，代码段的长度只有一小部分，所以data_limit>code_limit
 	if (old_data_base != old_code_base)
 		panic("We don't support separate I&D");
 	if (data_limit < code_limit)
 		panic("Bad data_limit");
 	new_data_base = new_code_base = nr * 0x4000000;
+	// 0x4000000 = 64MB nr=1 ，进程0的实际限长是640kb
+	//进程号nr*64MB，64MB是每个进程的线性地址空间大小，一共64个进程，64*64=4096MB=4GB，正好是32位地址空间的大小，64个进程等分4GB的线性地址空间
 	p->start_code = new_code_base;
 	set_base(p->ldt[1],new_code_base);
 	set_base(p->ldt[2],new_data_base);

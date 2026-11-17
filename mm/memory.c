@@ -147,6 +147,7 @@ int free_page_tables(unsigned long from,unsigned long size)
  * 1 Mb-range, so the pages can be shared with the kernel. Thus the
  * special case for nr=xxxx.
  */
+// 0 64mb，640kb：父进程的数据段基址，子进程的数据段基址，父进程的数据段限长
 int copy_page_tables(unsigned long from,unsigned long to,long size)
 {
 	unsigned long * from_page_table;
@@ -156,11 +157,15 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 	unsigned long nr;
 
 	if ((from&0x3fffff) || (to&0x3fffff))
+	//页目录表的大小是4MB，必须是4MB的整数倍
 		panic("copy_page_tables called with wrong alignment");
+		//获得页目录项的指针，对于to是16，对于from是0
+		//得源地址和目的地址的目录项指针(from_dir 和 to_dir)
 	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
 	to_dir = (unsigned long *) ((to>>20) & 0xffc);
 	size = ((unsigned) (size+0x3fffff)) >> 22;
 	for( ; size-->0 ; from_dir++,to_dir++) {
+		// 如果目的目录项指定的页表已经存在(P=1)，则出错，死机。
 		if (1 & *to_dir)
 			panic("copy_page_tables: already exist");
 		if (!(1 & *from_dir))
@@ -168,6 +173,7 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 		from_page_table = (unsigned long *) (0xfffff000 & *from_dir);
 		if (!(to_page_table = (unsigned long *) get_free_page()))
 			return -1;	/* Out of memory, see freeing */
+			//设置目的目录项信息。7 是标志信息，表示(supervisor/Usr, R/W, Present)
 		*to_dir = ((unsigned long) to_page_table) | 7;
 		nr = (from==0)?0xA0:1024;
 		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {
