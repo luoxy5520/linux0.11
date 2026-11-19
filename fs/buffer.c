@@ -162,7 +162,7 @@ static inline void insert_into_queues(struct buffer_head * bh)
 	hash(bh->b_dev,bh->b_blocknr) = bh;
 	bh->b_next->b_prev = bh;
 }
-
+//找设备号，块号是否有现成的
 static struct buffer_head * find_buffer(int dev, int block)
 {		
 	struct buffer_head * tmp;
@@ -186,7 +186,9 @@ struct buffer_head * get_hash_table(int dev, int block)
 
 	for (;;) {
 		if (!(bh=find_buffer(dev,block)))
+		//如果没找到现成的
 			return NULL;
+		//如果找到现成的
 		bh->b_count++;
 		wait_on_buffer(bh);
 		if (bh->b_dev == dev && bh->b_blocknr == block)
@@ -202,25 +204,33 @@ struct buffer_head * get_hash_table(int dev, int block)
  *
  * The algoritm is changed: hopefully better, and an elusive bug removed.
  */
+//脏和锁，脏的权重大，脏表示还没开始同步，锁表示锁进程方向，硬盘在干活，往硬盘方向同步数据了，所以不要进程访问。
+//关中断就是锁硬盘方向的
 #define BADNESS(bh) (((bh)->b_dirt<<1)+(bh)->b_lock)
 struct buffer_head * getblk(int dev,int block)
 {
 	struct buffer_head * tmp, * bh;
 
 repeat:
+//现成的，沿着红线找
 	if (bh = get_hash_table(dev,block))
 		return bh;
+	//找空闲的，沿着蓝线找
 	tmp = free_list;
 	do {
 		if (tmp->b_count)
 			continue;
+			//如果当前bh第一遍为空，就直接赋值
 		if (!bh || BADNESS(tmp)<BADNESS(bh)) {
 			bh = tmp;
+			//缓冲区和硬盘是同步了，要不然完全没写过，要不然就缓冲区和硬盘的值一致
 			if (!BADNESS(tmp))
 				break;
 		}
 /* and repeat until we find something good */
 	} while ((tmp = tmp->b_next_free) != free_list);
+	//结果有两种可能，一个是bh是空没找到，一个是找到了，bh有值
+	//如果转了一圈，bh是空，表示没找到空闲的
 	if (!bh) {
 		sleep_on(&buffer_wait);
 		goto repeat;
@@ -263,15 +273,20 @@ void brelse(struct buffer_head * buf)
 /*
  * bread() reads a specified block and returns the buffer that contains
  * it. It returns NULL if the block was unreadable.
+ * 进程之间复用这个block，把这个block放到缓冲区中，这样的话，能减少访问硬盘的时间。
+ * 有现成的用现成的，能用缓冲区的话，就用缓冲区的内容。
+ * 已经进入缓冲区的数据，只要没有别的块还要进入的话，要尽可能的呆着长
+ * 如果缓冲区没有空余地方了，就一直进行等待
  */
 struct buffer_head * bread(int dev,int block)
 {
 	struct buffer_head * bh;
-
+	 // 在高速缓冲中申请一块缓冲区。如果返回值是 NULL 指针，表示内核出错，死机。 
 	if (!(bh=getblk(dev,block)))
 		panic("bread: getblk returned NULL\n");
 	if (bh->b_uptodate)
 		return bh;
+
 	ll_rw_block(READ,bh);
 	wait_on_buffer(bh);
 	if (bh->b_uptodate)
