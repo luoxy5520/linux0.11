@@ -77,7 +77,7 @@ __asm__("std ; repne ; scasb\n\t"
 	"1:"
 	:"=a" (__res)
 	:"0" (0),"i" (LOW_MEM),"c" (PAGING_PAGES),
-	"D" (mem_map+PAGING_PAGES-1)
+	"D" (mem_map+PAGING_PAGES-1)//子进程的页号加一
 	:"di","cx","dx");
 return __res;
 }
@@ -162,6 +162,7 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 		//获得页目录项的指针，对于to是16，对于from是0
 		//得源地址和目的地址的目录项指针(from_dir 和 to_dir)
 	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
+	//页目录项里面是页表的地址，但是页表的后12位是偏移，前20位就可以知道页表的地址了
 	to_dir = (unsigned long *) ((to>>20) & 0xffc);
 	size = ((unsigned) (size+0x3fffff)) >> 22;
 	for( ; size-->0 ; from_dir++,to_dir++) {
@@ -170,23 +171,27 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 			panic("copy_page_tables: already exist");
 		if (!(1 & *from_dir))
 			continue;
+			//把后12位的，尤其是后三位的111清零
 		from_page_table = (unsigned long *) (0xfffff000 & *from_dir);
 		if (!(to_page_table = (unsigned long *) get_free_page()))
 			return -1;	/* Out of memory, see freeing */
 			//设置目的目录项信息。7 是标志信息，表示(supervisor/Usr, R/W, Present)
 		*to_dir = ((unsigned long) to_page_table) | 7;
+		//0xA0=160，进程0只有前160个页表项，其余的要复制1k个页表项
+		//图1-47，图2-02，内核是0-16Mb，进程0是0-640kb，所以进程0和内核共用内核空间的内容
+		//所以只有进程0，只复制0-640kb
 		nr = (from==0)?0xA0:1024;
 		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {
 			this_page = *from_page_table;
 			if (!(1 & this_page))
 				continue;
-			this_page &= ~2;
+			this_page &= ~2;//父进程的rw置0，表示只读
 			*to_page_table = this_page;
 			if (this_page > LOW_MEM) {
-				*from_page_table = this_page;
+				*from_page_table = this_page;//防止父子进程竞争写页表
 				this_page -= LOW_MEM;
 				this_page >>= 12;
-				mem_map[this_page]++;
+				mem_map[this_page]++;//共享内存加一
 			}
 		}
 	}
