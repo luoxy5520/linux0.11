@@ -33,10 +33,12 @@ static struct buffer_head * free_list;
 static struct task_struct * buffer_wait = NULL;
 int NR_BUFFERS = 0;
 
+//重点，bh是全局变量
 static inline void wait_on_buffer(struct buffer_head * bh)
 {
 	cli();
 	while (bh->b_lock)
+	//两个以上的进程等同一块，b_wait是指向进程的指针
 		sleep_on(&bh->b_wait);
 	sti();
 }
@@ -376,7 +378,7 @@ void buffer_init(long buffer_end)
 		h->b_count = 0;
 		h->b_lock = 0;
 		h->b_uptodate = 0;
-		h->b_wait = NULL;
+		h->b_wait = NULL;//最开始是空
 		h->b_next = NULL;
 		h->b_prev = NULL;
 		h->b_data = (char *) b;

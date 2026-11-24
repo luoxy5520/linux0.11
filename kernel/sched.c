@@ -165,21 +165,26 @@ int sys_pause(void)
 	schedule();
 	return 0;
 }
-
+//*p就是b_wait
 void sleep_on(struct task_struct **p)
 {
+	//当前进程的内核栈里面 图7-22
 	struct task_struct *tmp;
 
 	if (!p)
 		return;
 	if (current == &(init_task.task))
 		panic("task[0] trying to sleep");
-	tmp = *p;
-	*p = current;
+	tmp = *p;//第一个进程Atmp是目前是null,因为b_wait是空的
+			//第二个进程来了，B进程的tmp指向全局的之前的A进程的b_wait,也就是A进程的指针
+	*p = current;//将P指向当前进程,也就是将b_wait指向当前进程
+				//第二个进程B来了，全局的b_wait指向B进程
+
+				//最终达到图7-22的效果
 	current->state = TASK_UNINTERRUPTIBLE;
 	schedule();
 	if (tmp)
-		tmp->state=0;
+		tmp->state=0;//唤醒，s tate=0,也就是TASK_RUNNING
 }
 
 void interruptible_sleep_on(struct task_struct **p)
@@ -205,6 +210,7 @@ repeat:	current->state = TASK_INTERRUPTIBLE;
 
 void wake_up(struct task_struct **p)
 {
+	//唤醒之后，将b_wait的指针置空
 	if (p && *p) {
 		(**p).state=0;
 		*p=NULL;
