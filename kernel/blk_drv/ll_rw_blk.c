@@ -30,10 +30,10 @@ struct task_struct * wait_for_request = NULL;
  *	next-request
  */
 struct blk_dev_struct blk_dev[NR_BLK_DEV] = {
-	{ NULL, NULL },		/* no_dev */
-	{ NULL, NULL },		/* dev mem 虚拟盘 */
-	{ NULL, NULL },		/* dev fd  软盘 */
-	{ NULL, NULL },		/* dev hd  硬盘*/
+	{ NULL, NULL },		/* no_dev */0
+	{ NULL, NULL },		/* dev mem 虚拟盘 */1
+	{ NULL, NULL },		/* dev fd  软盘 */2
+	{ NULL, NULL },		/* dev hd  硬盘*/3
 	{ NULL, NULL },		/* dev ttyx */
 	{ NULL, NULL },		/* dev tty */
 	{ NULL, NULL }		/* dev lp */

@@ -79,7 +79,7 @@ struct buffer_head {
 	struct buffer_head * b_prev_free;
 	struct buffer_head * b_next_free;
 };
-
+//disk inode, the on-disk representation of an inode
 struct d_inode {
 	unsigned short i_mode;
 	unsigned short i_uid;
@@ -89,6 +89,9 @@ struct d_inode {
 	unsigned char i_nlinks;
 	unsigned short i_zone[9];
 };
+//memory inode, the in-memory representation of an inode
+
+//inode is not block,it is a node.
 
 struct m_inode {
 	unsigned short i_mode;
@@ -97,7 +100,7 @@ struct m_inode {
 	unsigned long i_mtime;
 	unsigned char i_gid;
 	unsigned char i_nlinks;
-	unsigned short i_zone[9];
+	unsigned short i_zone[9];//文件随意存在数据块内，通过izone连接
 /* these are in memory also */
 	struct task_struct * i_wait;
 	unsigned long i_atime;
@@ -121,6 +124,8 @@ struct file {
 	off_t f_pos;
 };
 
+//memory superblock, the in-memory representation of the superblock on disk
+//设备号=给了一个逻辑块=给了超级块
 struct super_block {
 	unsigned short s_ninodes;
 	unsigned short s_nzones;
@@ -143,10 +148,13 @@ struct super_block {
 	unsigned char s_dirt;
 };
 
+//disk superblock, the on-disk representation of the superblock
+//function:the data block number and the exits or not in the disk.
 struct d_super_block {
 	unsigned short s_ninodes;
-	unsigned short s_nzones;
-	unsigned short s_imap_blocks;
+	unsigned short s_nzones;//number of zones on disk,it is data number,not disk number,so it is the number of data blocks on disk
+	unsigned short s_imap_blocks;//number of blocks used by inode bit map，identifies which disk blocks are used for inodes
+
 	unsigned short s_zmap_blocks;
 	unsigned short s_firstdatazone;
 	unsigned short s_log_zone_size;
