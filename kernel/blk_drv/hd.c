@@ -154,6 +154,9 @@ int sys_setup(void * BIOS)
 	if (NR_HD)
 		printk("Partition table%s ok.\n\r",(NR_HD>1)?"s":"");
 	rd_load();
+//进程1的内核态从init，到了sys_setup函数，安装根文件系统，在bread函数中，调用了ll_rw_block函数，调用了do_hd_request函数，调用了hd_out函数，调用了outb_p函数，调用了inb_p函数，调用了CMOS_READ宏，读取了CMOS寄存器0x12的值，判断是否有硬盘，如果有硬盘，就读取分区表，并安装根文件系统
+//bread也挺重要的
+//还是属于进程1的内核代码，进程1安装根文件系统
 	mount_root();
 	return (0);
 }

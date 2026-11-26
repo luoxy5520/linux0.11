@@ -125,6 +125,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 		free_page((long) p);
 		return -EAGAIN;
 	}
+	// 和文件有关的，复制父进程的文件描述符表filp【20】，从用户使用的角度，子进程继承父进程的文件描述符表，父子进程共享文件描述符表
 	for (i=0; i<NR_OPEN;i++)
 		if (f=p->filp[i])
 			f->f_count++;

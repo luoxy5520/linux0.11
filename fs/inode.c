@@ -12,6 +12,7 @@
 #include <linux/mm.h>
 #include <asm/system.h>
 
+//inode_table[32] 清零了
 struct m_inode inode_table[NR_INODE]={{0,},};
 
 static void read_inode(struct m_inode * inode);

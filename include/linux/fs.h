@@ -120,6 +120,7 @@ struct file {
 	unsigned short f_mode;
 	unsigned short f_flags;
 	unsigned short f_count;
+	//m_inode里面有更详细的内容，file和inode的关系是file指向inode，file是inode的一个引用
 	struct m_inode * f_inode;
 	off_t f_pos;
 };
@@ -139,8 +140,8 @@ struct super_block {
 	struct buffer_head * s_imap[8];
 	struct buffer_head * s_zmap[8];
 	unsigned short s_dev;
-	struct m_inode * s_isup;
-	struct m_inode * s_imount;
+	struct m_inode * s_isup;//isup指向文件系统的根目录的inode
+	struct m_inode * s_imount;//挂载在父文件系统的inode
 	unsigned long s_time;
 	struct task_struct * s_wait;
 	unsigned char s_lock;
